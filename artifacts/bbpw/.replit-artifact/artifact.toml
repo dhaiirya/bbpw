@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "BBPW – Football Prediction Platform"
+version = "1.0.0"
+id = "artifacts/bbpw"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23618
+
+[services.development]
+run = "pnpm --filter @workspace/bbpw run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/bbpw", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/bbpw/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23618"
+BASE_PATH = "/"

@@ -1,0 +1,61 @@
+import { Router, type IRouter } from "express";
+import { eq, sql } from "drizzle-orm";
+import { db, usersTable, matchesTable, predictionsTable } from "@workspace/db";
+import { requireAdmin } from "../middlewares/auth";
+import { serializeUser } from "../lib/userSerializer";
+
+const router: IRouter = Router();
+
+// Admin stats
+router.get("/admin/stats", requireAdmin, async (_req, res): Promise<void> => {
+  const [userCount] = await db.select({ count: sql<number>`count(*)` }).from(usersTable);
+  const [matchCount] = await db.select({ count: sql<number>`count(*)` }).from(matchesTable);
+  const [activeCount] = await db.select({ count: sql<number>`count(*)` }).from(matchesTable).where(eq(matchesTable.status, "upcoming"));
+  const [predCount] = await db.select({ count: sql<number>`count(*)` }).from(predictionsTable);
+  const [coinsSum] = await db.select({ total: sql<number>`sum(coins)` }).from(usersTable);
+  const recentActivity = [
+    {
+      type: "system",
+      description: "Platform stats loaded",
+      timestamp: new Date().toISOString(),
+    },
+  ];
+  res.json({
+    totalUsers: Number(userCount?.count ?? 0),
+    totalMatches: Number(matchCount?.count ?? 0),
+    activeMatches: Number(activeCount?.count ?? 0),
+    totalPredictions: Number(predCount?.count ?? 0),
+    totalCoinsInCirculation: Number(coinsSum?.total ?? 0),
+    recentActivity,
+  });
+});
+
+// Set user coins (admin)
+router.patch("/admin/users/:userId/coins", requireAdmin, async (req, res): Promise<void> => {
+  const userId = parseInt(Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId, 10);
+  const { coins } = req.body;
+  if (coins === undefined || coins < 0) {
+    res.status(400).json({ error: "Invalid coin amount" });
+    return;
+  }
+  const [updated] = await db.update(usersTable).set({ coins }).where(eq(usersTable.id, userId)).returning();
+  if (!updated) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+  res.json(serializeUser(updated));
+});
+
+// Toggle admin (admin)
+router.patch("/admin/users/:userId/toggle-admin", requireAdmin, async (req, res): Promise<void> => {
+  const userId = parseInt(Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId, 10);
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+  const [updated] = await db.update(usersTable).set({ isAdmin: !user.isAdmin }).where(eq(usersTable.id, userId)).returning();
+  res.json(serializeUser(updated));
+});
+
+export default router;
