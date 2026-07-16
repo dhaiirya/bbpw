@@ -64,4 +64,23 @@ app.use(
 
 app.use("/api", router);
 
+// In production, serve the compiled React frontend from the same process.
+// This means a single Render web service handles both the API and the UI.
+if (process.env.NODE_ENV === "production") {
+  const { default: path } = await import("path");
+  const { createReadStream } = await import("fs");
+
+  // Works whether the CWD is the repo root or the artifact directory.
+  const frontendDist = path.resolve(process.cwd(), "artifacts/bbpw/dist/public");
+
+  // express.static is already a dependency (it ships with express).
+  app.use(express.static(frontendDist));
+
+  // Catch-all: return index.html so React Router handles client-side navigation.
+  app.get("*", (_req, res) => {
+    res.setHeader("Content-Type", "text/html");
+    createReadStream(path.join(frontendDist, "index.html")).pipe(res);
+  });
+}
+
 export default app;
