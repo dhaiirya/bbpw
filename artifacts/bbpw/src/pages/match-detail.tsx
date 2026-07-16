@@ -44,7 +44,24 @@ export default function MatchDetail() {
   });
 
   const [stake, setStake] = useState<number[]>([10]);
+  const [stakeInput, setStakeInput] = useState("10");
   const [selectedPrediction, setSelectedPrediction] = useState<"home" | "draw" | "away" | null>(null);
+
+  const maxStake = Math.min(user?.coins || 1000, 10000);
+
+  const applyStake = (val: number) => {
+    const clamped = Math.max(10, Math.min(val, maxStake));
+    const snapped = Math.round(clamped / 10) * 10;
+    setStake([snapped]);
+    setStakeInput(String(snapped));
+  };
+
+  const PRESETS = [
+    { label: "25%", pct: 0.25 },
+    { label: "50%", pct: 0.5 },
+    { label: "75%", pct: 0.75 },
+    { label: "All In", pct: 1 },
+  ];
 
   if (isLoading) {
     return (
@@ -191,21 +208,86 @@ export default function MatchDetail() {
                   </div>
 
                   <div className="space-y-4">
+                    {/* Header row */}
                     <div className="flex justify-between items-center">
-                      <label className="text-sm font-medium">Stake Amount</label>
-                      <span className="text-xl font-bold text-gold">{stake[0]} BBPW</span>
+                      <label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Stake Amount</label>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-gold" />
+                        <motion.span
+                          key={stake[0]}
+                          initial={{ scale: 1.2, opacity: 0.6 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ duration: 0.15 }}
+                          className="text-2xl font-bold text-gold tabular-nums"
+                        >
+                          {stake[0].toLocaleString()}
+                        </motion.span>
+                        <span className="text-xs text-muted-foreground font-semibold">BBPW</span>
+                      </div>
                     </div>
-                    <Slider
-                      value={stake}
-                      onValueChange={setStake}
-                      min={10}
-                      max={Math.min(user?.coins || 1000, 10000)}
-                      step={10}
-                      className="py-4"
-                    />
+
+                    {/* Preset quick-pick buttons */}
+                    <div className="grid grid-cols-4 gap-2">
+                      {PRESETS.map(({ label, pct }) => {
+                        const val = Math.max(10, Math.round((maxStake * pct) / 10) * 10);
+                        const active = stake[0] === val;
+                        return (
+                          <button
+                            key={label}
+                            type="button"
+                            onClick={() => applyStake(val)}
+                            className={`py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                              active
+                                ? "bg-primary/20 border-primary text-primary"
+                                : "bg-black/40 border-white/10 text-muted-foreground hover:border-white/30 hover:text-white"
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Slider */}
+                    <div className="px-1 py-2">
+                      <Slider
+                        value={stake}
+                        onValueChange={(v) => {
+                          setStake(v);
+                          setStakeInput(String(v[0]));
+                        }}
+                        min={10}
+                        max={maxStake}
+                        step={10}
+                        className="py-3"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>10</span>
+                        <span>{maxStake.toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    {/* Manual number input */}
+                    <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl px-4 py-2 focus-within:border-primary/50 transition-colors">
+                      <span className="text-xs text-muted-foreground font-semibold shrink-0">Enter amount</span>
+                      <input
+                        type="number"
+                        min={10}
+                        max={maxStake}
+                        step={10}
+                        value={stakeInput}
+                        onChange={(e) => setStakeInput(e.target.value)}
+                        onBlur={() => applyStake(Number(stakeInput))}
+                        onKeyDown={(e) => e.key === "Enter" && applyStake(Number(stakeInput))}
+                        className="flex-1 bg-transparent text-right text-gold font-bold text-lg outline-none min-w-0 tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <span className="text-xs text-muted-foreground font-semibold shrink-0">BBPW</span>
+                    </div>
+
+                    {/* Balance indicator */}
                     <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Min: 10</span>
-                      <span>Max: {Math.min(user?.coins || 1000, 10000)}</span>
+                      <span>Your balance: <span className="text-gold font-semibold">{(user?.coins || 0).toLocaleString()} BBPW</span></span>
+                      <span>Remaining: <span className={`font-semibold ${(user?.coins || 0) - stake[0] < 0 ? "text-destructive" : "text-white"}`}>{((user?.coins || 0) - stake[0]).toLocaleString()} BBPW</span></span>
                     </div>
                   </div>
 
