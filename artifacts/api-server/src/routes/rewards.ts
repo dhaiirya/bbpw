@@ -1,10 +1,17 @@
 import { Router, type IRouter } from "express";
 import { eq, sql } from "drizzle-orm";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, settingsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/auth";
 import { createNotification } from "../lib/notificationHelper";
 
 const router: IRouter = Router();
+
+async function getSetting(key: string, fallback: number): Promise<number> {
+  const [row] = await db.select().from(settingsTable).where(eq(settingsTable.key, key));
+  if (!row) return fallback;
+  const parsed = Number(row.value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
 
 router.post("/rewards/daily", requireAuth, async (req, res): Promise<void> => {
   const userId = req.session.userId!;
@@ -25,11 +32,18 @@ router.post("/rewards/daily", requireAuth, async (req, res): Promise<void> => {
       return;
     }
   }
-  // Streak bonus
+
+  // Read configurable values from settings table
+  const [baseReward, streakBonusPerDay, maxStreakBonus] = await Promise.all([
+    getSetting("daily_reward_base", 50),
+    getSetting("daily_reward_streak_bonus_per_day", 10),
+    getSetting("daily_reward_max_streak_bonus", 100),
+  ]);
+
   const newStreak = (user.loginStreak ?? 0) + 1;
-  const baseReward = 50;
-  const streakBonus = Math.min(newStreak * 10, 100);
+  const streakBonus = Math.min(newStreak * streakBonusPerDay, maxStreakBonus);
   const coinsAwarded = baseReward + streakBonus;
+
   const [updated] = await db.update(usersTable)
     .set({
       coins: sql`${usersTable.coins} + ${coinsAwarded}`,
@@ -38,8 +52,15 @@ router.post("/rewards/daily", requireAuth, async (req, res): Promise<void> => {
     })
     .where(eq(usersTable.id, userId))
     .returning();
-  await createNotification(userId, "daily_reward", "Daily Reward Claimed!", `You received ${coinsAwarded} BBPW Coins! Streak: ${newStreak} days.`);
-  res.json({ coinsAwarded, newBalance: updated.coins, streak: newStreak });
+
+  await createNotification(
+    userId,
+    "daily_reward",
+    "Daily Reward Claimed!",
+    `You received ${coinsAwarded} BBPW Coins! Streak: ${newStreak} days.`,
+  );
+
+  res.json({ coinsAwarded, newBalance: updated.coins, streak: newStreak, baseReward, streakBonus });
 });
 
 export default router;

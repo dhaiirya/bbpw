@@ -4,3 +4,4 @@ export * from "./predictions";
 export * from "./friends";
 export * from "./notifications";
 export * from "./sessions";
+export * from "./settings";

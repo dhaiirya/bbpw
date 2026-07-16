@@ -1,8 +1,9 @@
 import { AppLayout } from "@/components/layout/app-layout";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useGetAdminStats, useListMatches, useListUsers, useCreateMatch, useUpdateMatch, useDeleteMatch, useDeclareResult, useSetUserCoins, useToggleAdmin, getListMatchesQueryKey, getListUsersQueryKey } from "@workspace/api-client-react";
+import { useQuery, useMutation, useQueryClient as useQC } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Edit, Trash2, CheckCircle, Shield, Coins } from "lucide-react";
+import { Edit, Trash2, CheckCircle, Shield, Coins, Gift, Save } from "lucide-react";
 
 export default function Admin() {
   const { user } = useAuth();
@@ -42,6 +43,7 @@ export default function Admin() {
             <TabsTrigger value="stats">Platform Stats</TabsTrigger>
             <TabsTrigger value="matches">Manage Matches</TabsTrigger>
             <TabsTrigger value="users">Manage Users</TabsTrigger>
+            <TabsTrigger value="settings">Reward Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="stats">
@@ -54,6 +56,10 @@ export default function Admin() {
 
           <TabsContent value="users">
             <UsersTab />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <RewardSettingsTab />
           </TabsContent>
         </Tabs>
       </div>
@@ -329,5 +335,157 @@ function UsersTab() {
         </Table>
       </CardContent>
     </Card>
+  );
+}
+
+function RewardSettingsTab() {
+  const { toast } = useToast();
+  const qc = useQC();
+
+  const { data: settings, isLoading } = useQuery<Record<string, string>>({
+    queryKey: ["admin-settings"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/settings", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load settings");
+      return res.json();
+    },
+  });
+
+  const [form, setForm] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (settings) setForm(settings);
+  }, [settings]);
+
+  const save = useMutation({
+    mutationFn: async (values: Record<string, string>) => {
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as any).error ?? "Failed to save");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      qc.setQueryData(["admin-settings"], data);
+      toast({ title: "Reward settings saved" });
+    },
+    onError: (err: any) =>
+      toast({ title: "Save failed", description: err.message, variant: "destructive" }),
+  });
+
+  const FIELDS = [
+    {
+      key: "daily_reward_base",
+      label: "Base daily reward",
+      description: "Coins every user gets just for claiming their daily reward.",
+      min: 0, max: 10000, step: 10,
+    },
+    {
+      key: "daily_reward_streak_bonus_per_day",
+      label: "Streak bonus per day",
+      description: "Extra coins added for each consecutive login day.",
+      min: 0, max: 500, step: 1,
+    },
+    {
+      key: "daily_reward_max_streak_bonus",
+      label: "Max streak bonus (cap)",
+      description: "The streak bonus stops growing once it hits this ceiling.",
+      min: 0, max: 10000, step: 10,
+    },
+  ] as const;
+
+  const base   = Number(form["daily_reward_base"] ?? 50);
+  const perDay = Number(form["daily_reward_streak_bonus_per_day"] ?? 10);
+  const cap    = Number(form["daily_reward_max_streak_bonus"] ?? 100);
+  const preview: [string, number][] = [
+    ["Day 1",  base + Math.min(1  * perDay, cap)],
+    ["Day 7",  base + Math.min(7  * perDay, cap)],
+    ["Day 30", base + Math.min(30 * perDay, cap)],
+  ];
+
+  if (isLoading) return <div className="text-center py-12 text-muted-foreground">Loading…</div>;
+
+  return (
+    <div className="max-w-xl space-y-6">
+      <Card className="glass border-white/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Gift className="w-5 h-5 text-primary" />
+            Daily Reward Configuration
+          </CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            Formula: <span className="font-mono text-white">base + min(day × bonus_per_day, cap)</span>
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-8">
+
+          {FIELDS.map(({ key, label, description, min, max, step }) => (
+            <div key={key} className="space-y-2">
+              <div className="flex justify-between items-baseline">
+                <label className="text-sm font-semibold text-white">{label}</label>
+                <span className="text-xs text-muted-foreground">{min} – {max.toLocaleString()}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">{description}</p>
+              <div className="flex items-center gap-4 pt-1">
+                <input
+                  type="range"
+                  min={min}
+                  max={max}
+                  step={step}
+                  value={Number(form[key] ?? 0)}
+                  onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                  className="flex-1 accent-[#00E676] cursor-pointer"
+                />
+                <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 w-32 focus-within:border-primary/50 transition-colors shrink-0">
+                  <input
+                    type="number"
+                    min={min}
+                    max={max}
+                    value={form[key] ?? ""}
+                    onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                    onBlur={e => {
+                      const clamped = Math.max(min, Math.min(max, Number(e.target.value) || 0));
+                      setForm(f => ({ ...f, [key]: String(clamped) }));
+                    }}
+                    className="w-full bg-transparent text-right text-gold font-bold text-sm outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <span className="text-[10px] text-muted-foreground shrink-0">coins</span>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Live payout preview */}
+          <div className="p-4 bg-black/30 rounded-xl border border-white/5">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Live payout preview</p>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              {preview.map(([label, coins]) => (
+                <div key={label}>
+                  <div className="text-xs text-muted-foreground mb-1">{label}</div>
+                  <div className="text-2xl font-bold text-gold">{coins.toLocaleString()}</div>
+                  <div className="text-[10px] text-muted-foreground">BBPW</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Button
+            className="w-full bg-primary text-black font-bold hover:bg-primary/90 flex items-center justify-center gap-2"
+            onClick={() => save.mutate(form)}
+            disabled={save.isPending}
+          >
+            <Save className="w-4 h-4" />
+            {save.isPending ? "Saving…" : "Save Settings"}
+          </Button>
+
+        </CardContent>
+      </Card>
+    </div>
   );
 }
