@@ -122,7 +122,13 @@ function MatchesTab() {
   const [formData, setFormData] = useState({ league: "", leagueLabel: "", homeTeam: "", awayTeam: "", kickoffAt: "" });
 
   const handleCreate = () => {
-    createMatch.mutate({ data: formData as any }, {
+    const payload = {
+      ...formData,
+      // datetime-local gives a string without timezone; new Date() treats it as
+      // local time in the browser, so .toISOString() gives the correct UTC value.
+      kickoffAt: formData.kickoffAt ? new Date(formData.kickoffAt).toISOString() : "",
+    };
+    createMatch.mutate({ data: payload as any }, {
       onSuccess: () => {
         toast({ title: "Match created" });
         setIsCreateOpen(false);
