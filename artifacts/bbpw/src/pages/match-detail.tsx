@@ -3,7 +3,7 @@ import { useGetMatch, usePlacePrediction, useGetMe, getGetMatchQueryKey } from "
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
+import { Slider, SliderTrack, SliderThumb } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -260,7 +260,11 @@ export default function MatchDetail() {
                         max={maxStake}
                         step={10}
                         className="py-3"
-                      />
+                      >
+                        <SliderTrack>
+                        </SliderTrack>
+                        <SliderThumb />
+                      </Slider>
                       <div className="flex justify-between text-xs text-muted-foreground mt-1">
                         <span>10</span>
                         <span>{maxStake.toLocaleString()}</span>
