@@ -78,7 +78,8 @@ if (process.env.NODE_ENV === "production") {
   app.use(express.static(frontendDist));
 
   // Catch-all: return index.html so React Router handles client-side navigation.
-  app.get("*", (_req, res) => {
+  app.get("(.*)", (_req, res) => {
+
     res.setHeader("Content-Type", "text/html");
     createReadStream(path.join(frontendDist, "index.html")).pipe(res);
   });
