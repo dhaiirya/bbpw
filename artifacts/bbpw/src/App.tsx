@@ -40,17 +40,19 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-          <AuthProvider>
-            <Router />
-          </AuthProvider>
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <div style={{ 
+      padding: '40px', 
+      color: 'white', 
+      backgroundColor: '#121212', 
+      height: '100vh', 
+      textAlign: 'center',
+      fontFamily: 'sans-serif'
+    }}>
+      <h1>🚀 BBPW Production Build Testing</h1>
+      <p>The code is successfully building and serving on Render!</p>
+    </div>
   );
 }
+
 
 export default App;
