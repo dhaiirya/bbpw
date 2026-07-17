@@ -20,10 +20,7 @@ const queryClient = new QueryClient();
 function Router() {
   return (
     <Switch>
-      <Route path="/">
-  {() => <div style={{ padding: '20px', color: 'white', textAlign: 'center' }}>🚀 BBPW Front Page Loaded Successfully!</div>}
-</Route>
-      
+      <Route path="/" component={AuthPage} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/matches" component={Matches} />
       <Route path="/matches/:id" component={MatchDetail} />
@@ -38,21 +35,21 @@ function Router() {
   );
 }
 
+
 function App() {
   return (
-    <div style={{ 
-      padding: '40px', 
-      color: 'white', 
-      backgroundColor: '#121212', 
-      height: '100vh', 
-      textAlign: 'center',
-      fontFamily: 'sans-serif'
-    }}>
-      <h1>🚀 BBPW Production Build Testing</h1>
-      <p>The code is successfully building and serving on Render!</p>
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <WouterRouter base={import.meta.env.BASE_URL}>
+          <AuthProvider>
+            <Router />
+          </AuthProvider>
+        </WouterRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }
+
 
 
 export default App;
