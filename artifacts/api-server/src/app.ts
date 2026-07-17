@@ -54,11 +54,12 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-  secure: false,
+  secure: process.env.NODE_ENV === "production", // true on Render, false on local dev
   httpOnly: true,
-  maxAge: 24 * 60 * 60 * 1000, // 1 day default
-  sameSite: "none",
+  maxAge: 24 * 60 * 60 * 1000,
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
 }
+
 
   })
 );
