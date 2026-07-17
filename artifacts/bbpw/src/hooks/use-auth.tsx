@@ -27,14 +27,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logoutHook = useLogout();
 
   useEffect(() => {
-    if (!isLoading && isError && location !== "/") {
-      setLocation("/");
-    } else if (!isLoading && user && location === "/") {
-      setLocation("/dashboard");
-    }
+    // if (!isLoading && isError && location !== "/") {
+    //   setLocation("/");
+    // } else if (!isLoading && user && location === "/") {
+    //   setLocation("/dashboard");
+    // }
   }, [user, isLoading, isError, location, setLocation]);
 
   return (
+
     <AuthContext.Provider value={{
       user,
       isLoading,
