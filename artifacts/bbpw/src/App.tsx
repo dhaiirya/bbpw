@@ -20,7 +20,10 @@ const queryClient = new QueryClient();
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={AuthPage} />
+      <Route path="/">
+  {() => <div style={{ padding: '20px', color: 'white', textAlign: 'center' }}>🚀 BBPW Front Page Loaded Successfully!</div>}
+</Route>
+      
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/matches" component={Matches} />
       <Route path="/matches/:id" component={MatchDetail} />
