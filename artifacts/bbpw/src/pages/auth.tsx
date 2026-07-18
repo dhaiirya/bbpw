@@ -32,13 +32,13 @@ export default function AuthPage() {
     },
   });
 
-  const onSubmit = async (data: AuthValues) => {
+    const onSubmit = async (data: AuthValues) => {
     try {
       if (isLogin) {
-        await login.mutateAsync({ data: { ...data, rememberMe: true } });
+        await login.mutateAsync(data);
         toast({ title: "Welcome back to BBPW" });
       } else {
-        await register.mutateAsync({ data });
+        await register.mutateAsync(data);
         toast({ title: "Account created successfully" });
       }
     } catch (error: any) {
@@ -49,6 +49,7 @@ export default function AuthPage() {
       });
     }
   };
+
 
   return (
     <div className="min-h-[100dvh] w-full flex bg-background relative overflow-hidden">
