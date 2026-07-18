@@ -26,13 +26,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const registerHook = useRegister();
   const logoutHook = useLogout();
 
-      useEffect(() => {
-    if (!isLoading && isError && window.location.pathname !== "/") {
-      window.location.href = "/";
-    } else if (!isLoading && user && window.location.pathname === "/") {
-      window.location.href = "/dashboard";
+        useEffect(() => {
+    // Only attempt routing transitions if the auth profile fetch is completely finished loading
+    if (isLoading) return;
+
+    if (isError && location !== "/") {
+      setLocation("/");
+    } else if (user && location === "/") {
+      setLocation("/dashboard");
     }
-  }, [user, isLoading, isError]);
+  }, [user, isLoading, isError, location, setLocation]);
+
 
   return (
 
