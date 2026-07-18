@@ -43,6 +43,7 @@ if (!process.env.SESSION_SECRET) {
   throw new Error("SESSION_SECRET environment variable is required");
 }
 
+app.set("trust proxy", 1);
 app.use(
   session({
     store: new PgSession({
@@ -54,11 +55,12 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-  secure: process.env.NODE_ENV === "production", // true on Render, false on local dev
+  secure: process.env.NODE_ENV === "production",
   httpOnly: true,
   maxAge: 24 * 60 * 60 * 1000,
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  sameSite: "lax",
 }
+
 
 
   })
