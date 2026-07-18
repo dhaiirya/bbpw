@@ -26,13 +26,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const registerHook = useRegister();
   const logoutHook = useLogout();
 
-    useEffect(() => {
-    if (!isLoading && isError && location !== "/") {
-      setLocation("/");
-    } else if (!isLoading && user && location === "/") {
-      setLocation("/dashboard");
+      useEffect(() => {
+    if (!isLoading && isError && window.location.pathname !== "/") {
+      window.location.href = "/";
+    } else if (!isLoading && user && window.location.pathname === "/") {
+      window.location.href = "/dashboard";
     }
-  }, [user, isLoading, isError, location, setLocation]);
+  }, [user, isLoading, isError]);
 
   return (
 
