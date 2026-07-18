@@ -45,12 +45,13 @@ if (!process.env.SESSION_SECRET) {
 
 app.set("trust proxy", 1);
 app.use(
-  session({
+    session({
     store: new PgSession({
-      pool,
+      conString: process.env.DATABASE_URL,
       tableName: "session",
       createTableIfMissing: true,
     }),
+
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
