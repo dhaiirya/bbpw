@@ -40,7 +40,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL}>
+        <WouterRouter>
+
           <AuthProvider>
             <Router />
           </AuthProvider>
